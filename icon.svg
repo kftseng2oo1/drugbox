@@ -1,0 +1,15 @@
+<svg id="svgMain" width="512" height="512" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" id="sStart" stop-color="#D4D486"></stop>
+            <stop offset="100%" id="sEnd" stop-color="#808000"></stop>
+          </linearGradient>
+          <filter id="fShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="0.5" stdDeviation="0.8" flood-color="rgba(0,0,0,0.7)"></feDropShadow>
+          </filter>
+        </defs>
+        <rect id="elRect" x="0.5" y="0.5" width="23" height="23" rx="7.84" ry="7.84" fill="#fc035a" stroke="#ffffff" stroke-width="0.6"></rect>
+        <circle id="elCirc" cx="12" cy="12" r="11.5" fill="#8d8eff" style="display:none"></circle>
+        <path id="elGeo" d="M10.233,20.314L11.035,13.893L6.312,18.317L10.218,13.157L3.916,14.627L9.878,12.111L3.686,10.233L10.107,11.035L5.683,6.312L10.843,10.218L9.373,3.916L11.889,9.878L13.767,3.686L12.965,10.107L17.688,5.683L13.782,10.843L20.084,9.373L14.122,11.889L20.314,13.767L13.893,12.965L18.317,17.688L13.157,13.782L14.627,20.084L12.111,14.122Z" fill="url(#g1)" style=""></path>
+        <g id="elSlot"><text x="12" y="12" dy="0.38em" text-anchor="middle" font-weight="900" font-size="4.80" fill="#FFFFFF">MED</text></g>
+      </svg>
