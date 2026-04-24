@@ -545,7 +545,7 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
     <div class="modal-handle"></div>
     <div class="modal-hdr">
       <div class="modal-title" id="userFormTitle">用藥者資料</div>
-      <button class="modal-close" onclick="closeUserForm()">&#x2715;</button>
+      <button class="modal-close" id="uf-close-x-btn">&#x2715;</button>
     </div>
     <div style="overflow-y:auto;max-height:70vh;padding:0 18px">
       <div class="form-group">
@@ -555,41 +555,52 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
       <div class="form-group">
         <div class="form-label">🏷️ 稱謂</div>
         <div class="rel-grid" id="uf-rel-grid">
-          <button class="rel-btn" onclick="ufSelRel(this)">自己</button>
-          <button class="rel-btn" onclick="ufSelRel(this)">父親</button>
-          <button class="rel-btn" onclick="ufSelRel(this)">母親</button>
-          <button class="rel-btn" onclick="ufSelRel(this)">祖父</button>
-          <button class="rel-btn" onclick="ufSelRel(this)">祖母</button>
-          <button class="rel-btn" onclick="ufSelRel(this)">其他</button>
+          <button class="rel-btn" data-rel="自己">自己</button>
+          <button class="rel-btn" data-rel="父親">父親</button>
+          <button class="rel-btn" data-rel="母親">母親</button>
+          <button class="rel-btn" data-rel="祖父">祖父</button>
+          <button class="rel-btn" data-rel="祖母">祖母</button>
+          <button class="rel-btn" data-rel="其他">其他</button>
         </div>
       </div>
       <div class="form-group">
         <div class="form-label">🎨 頭像顏色</div>
         <div class="avatar-color-grid" id="uf-color-grid">
-          <button class="avatar-color-btn sel" style="background:#0f766e" onclick="ufSelColor(this,'#0f766e')">A</button>
-          <button class="avatar-color-btn" style="background:#b45309" onclick="ufSelColor(this,'#b45309')">A</button>
-          <button class="avatar-color-btn" style="background:#1e40af" onclick="ufSelColor(this,'#1e40af')">A</button>
-          <button class="avatar-color-btn" style="background:#be185d" onclick="ufSelColor(this,'#be185d')">A</button>
-          <button class="avatar-color-btn" style="background:#6d28d9" onclick="ufSelColor(this,'#6d28d9')">A</button>
-          <button class="avatar-color-btn" style="background:#dc2626" onclick="ufSelColor(this,'#dc2626')">A</button>
+          <button class="avatar-color-btn sel" style="background:#0f766e" data-color="#0f766e">A</button>
+          <button class="avatar-color-btn" style="background:#b45309" data-color="#b45309">A</button>
+          <button class="avatar-color-btn" style="background:#1e40af" data-color="#1e40af">A</button>
+          <button class="avatar-color-btn" style="background:#be185d" data-color="#be185d">A</button>
+          <button class="avatar-color-btn" style="background:#6d28d9" data-color="#6d28d9">A</button>
+          <button class="avatar-color-btn" style="background:#dc2626" data-color="#dc2626">A</button>
         </div>
       </div>
       <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
       <div class="form-group"><div class="form-label">📧 本人 Email（接收通知）</div><input class="form-input" id="uf-email" type="email" placeholder="用藥者本人信箱" maxlength="60"></div>
       <div class="form-group"><div class="form-label">🆘 緊急聯絡人姓名</div><input class="form-input" id="uf-ec-name" type="text" placeholder="例：曾小明" maxlength="20"></div>
       <div class="form-group"><div class="form-label">📧 緊急聯絡人 Email</div><input class="form-input" id="uf-ec-email" type="email" placeholder="子女或照護者信箱" maxlength="60"><div class="ec-hint">漏服藥、庫存緊急時自動副本通知</div></div>
+      <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
+      <div style="font-weight:700;font-size:13px;color:#06c755;margin-bottom:10px">💬 LINE 通知設定</div>
+      <div class="form-group"><div class="form-label">LINE userId</div><input class="form-input" id="uf-line-id" type="text" placeholder="Uxxxxxxxxxxxxxxxxx" maxlength="40"></div>
+      <div class="form-group">
+        <div class="form-label">通知方式</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:5px">
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px"><input type="checkbox" id="uf-notify-email" checked style="width:18px;height:18px;accent-color:var(--teal)"><span>Email 本人</span></label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px"><input type="checkbox" id="uf-notify-email-ec" checked style="width:18px;height:18px;accent-color:var(--teal)"><span>Email 副本緊急聯絡人</span></label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px"><input type="checkbox" id="uf-notify-line" style="width:18px;height:18px;accent-color:#06c755"><span>LINE 通知</span></label>
+        </div>
+      </div>
       <div class="form-group"><div class="form-label">🎂 生日</div><input class="form-input" id="uf-birth" type="date"></div>
-      <div class="form-group"><div class="form-label">🩸 血型</div><div class="blood-select"><button class="blood-btn" data-blood="A" onclick="selectBlood('A')">A</button><button class="blood-btn" data-blood="B" onclick="selectBlood('B')">B</button><button class="blood-btn" data-blood="AB" onclick="selectBlood('AB')">AB</button><button class="blood-btn" data-blood="O" onclick="selectBlood('O')">O</button></div></div>
+      <div class="form-group"><div class="form-label">🩸 血型</div><div class="blood-select"><button class="blood-btn" data-blood="A">A</button><button class="blood-btn" data-blood="B">B</button><button class="blood-btn" data-blood="AB">AB</button><button class="blood-btn" data-blood="O">O</button></div></div>
       <div id="uf-delete-section" style="display:none;margin-top:8px">
         <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
         <button id="uf-clear-data-btn" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--amber);background:transparent;font-size:13px;font-weight:700;color:var(--amber);cursor:pointer;margin-bottom:8px">🗑 清除此用藥者所有用藥資料</button>
-        <button onclick="deleteCurrentUser()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--red);background:transparent;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">❌ 刪除此用藥者帳號</button>
+        <button id="uf-delete-btn" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--red);background:transparent;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">❌ 刪除此用藥者帳號</button>
       </div>
       <div style="height:8px"></div>
     </div>
     <div style="padding:10px 18px 0;display:flex;gap:9px">
-      <button class="btn-back" onclick="closeUserForm()">取消</button>
-      <button class="btn-next" onclick="saveUserForm()">✓ 儲存</button>
+      <button class="btn-back" id="uf-cancel-btn">取消</button>
+      <button class="btn-next" id="uf-save-btn">✓ 儲存</button>
     </div>
     <div style="height:6px"></div>
   </div>
@@ -656,7 +667,7 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
       </div>
       <div class="form-group"><div class="form-label">👤 姓名</div><input class="form-input" id="inputName" type="text" placeholder="請輸入姓名" maxlength="20" oninput="updateAvatarPreview()"></div>
       <div class="form-group"><div class="form-label">🎂 生日 <span class="age-badge" id="ageBadge" style="display:none"></span></div><input class="form-input" id="inputBirth" type="date" onchange="updateAge()"></div>
-      <div class="form-group"><div class="form-label">🩸 血型</div><div class="blood-select"><button class="blood-btn" data-blood="A" onclick="selectBlood('A')">A</button><button class="blood-btn" data-blood="B" onclick="selectBlood('B')">B</button><button class="blood-btn" data-blood="AB" onclick="selectBlood('AB')">AB</button><button class="blood-btn" data-blood="O" onclick="selectBlood('O')">O</button></div></div>
+      <div class="form-group"><div class="form-label">🩸 血型</div><div class="blood-select"><button class="blood-btn" data-blood="A">A</button><button class="blood-btn" data-blood="B">B</button><button class="blood-btn" data-blood="AB">AB</button><button class="blood-btn" data-blood="O">O</button></div></div>
       <div class="form-group"><div class="form-label">⚠️ 過敏藥物</div><div class="allergy-tags" id="allergyTags"></div><div class="allergy-input-row"><input class="form-input" id="allergyInput" type="text" placeholder="輸入藥物名稱" maxlength="30" onkeydown="if(event.key==='Enter'){event.preventDefault();addAllergy()}"><button class="add-allergy-btn" onclick="addAllergy()">新增</button></div></div>
       <div class="section-div"></div>
       <div class="form-group"><div class="form-label">🆘 緊急聯絡人姓名</div><input class="form-input" id="inputEcName" type="text" placeholder="例：曾小明" maxlength="20"></div>
@@ -2059,7 +2070,7 @@ function sendLineNotify(subject, message){
 window.MedNotify={check:nCheck};
 
 /* ════ 多用戶管理系統 ════ */
-var MAX_USERS=3,currentUserId=0,_editingUserId=-1,_ufColor='#0f766e';
+var MAX_USERS=6,currentUserId=0,_editingUserId=-1,_ufColor='#0f766e';
 var AVATAR_COLORS=['#0f766e','#b45309','#1e40af','#be185d','#6d28d9','#dc2626'];
 function defaultUser(id){return{id:id,name:'',relation:'自己',avatarColor:AVATAR_COLORS[id%AVATAR_COLORS.length],email:'',ecName:'',ecEmail:'',birth:'',blood:'',allergies:[]};}
 function loadUserProfile(uid){try{var s=JSON.parse(localStorage.getItem('mm_user_'+uid)||'null');if(s)return s;}catch(e){}return defaultUser(uid);}
@@ -2210,8 +2221,56 @@ function deleteCurrentUser(){
     var clearDataBtn=document.getElementById('uf-clear-data-btn');
     if(clearDataBtn){
       clearDataBtn.addEventListener('click',function(e){
-        e.stopPropagation();
-        clearUserData();
+        e.stopPropagation();clearUserData();
+      },false);
+    }
+
+    /* userForm 所有按鈕事件 */
+    function bindEl(id,fn){var el=document.getElementById(id);if(el)el.addEventListener('click',function(e){e.stopPropagation();fn(e);},false);}
+    bindEl('uf-close-btn',closeUserForm);
+    bindEl('uf-close-x-btn',closeUserForm);
+    bindEl('uf-cancel-btn',closeUserForm);
+    bindEl('uf-save-btn',saveUserForm);
+    bindEl('uf-delete-btn',deleteCurrentUser);
+
+    /* rel-btn 事件委派 */
+    var relGrid=document.getElementById('uf-rel-grid');
+    if(relGrid){
+      relGrid.addEventListener('click',function(e){
+        var btn=e.target;
+        if(btn&&btn.className&&btn.className.indexOf('rel-btn')>=0){
+          var btns=relGrid.querySelectorAll('.rel-btn');
+          for(var ri=0;ri<btns.length;ri++) btns[ri].classList.remove('sel');
+          btn.classList.add('sel');
+          _ufColor=_ufColor; /* keep color */
+        }
+      },false);
+    }
+
+    /* avatar-color-btn 事件委派 */
+    var colorGrid=document.getElementById('uf-color-grid');
+    if(colorGrid){
+      colorGrid.addEventListener('click',function(e){
+        var btn=e.target;
+        if(btn&&btn.className&&btn.className.indexOf('avatar-color-btn')>=0){
+          var clr=btn.getAttribute('data-color');
+          if(clr){
+            _ufColor=clr;
+            var btns=colorGrid.querySelectorAll('.avatar-color-btn');
+            for(var ci=0;ci<btns.length;ci++) btns[ci].classList.remove('sel');
+            btn.classList.add('sel');
+          }
+        }
+      },false);
+    }
+
+    /* blood-btn 事件委派（userForm 裡的）*/
+    var bloodSel=document.querySelector('#userFormOverlay .blood-select');
+    if(bloodSel){
+      bloodSel.addEventListener('click',function(e){
+        var btn=e.target;
+        var bld=btn.getAttribute('data-blood');
+        if(bld) selectBlood(bld);
       },false);
     }
   },100);
