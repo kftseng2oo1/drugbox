@@ -411,28 +411,8 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
     </div>
   </div>
   <div class="scroll-main">
-    <div class="visit-row"><span>🏥</span><span>下次<strong>回診</strong>：台大醫院內科 &nbsp;<strong>2026/07/10</strong>&nbsp;（79天後）</span></div>
-    <div class="pickup-cards">
-      <div class="pickup-card active" onclick="showToast('🏥 前往台大醫院領藥（第1次）')">
-        <div class="pc-icon">💊</div>
-        <div class="pc-body"><div class="pc-title">現在可以去領藥</div><div class="pc-sub">心臟內科處方箋 · 第 1 次 / 共 3 次</div></div>
-        <div class="pc-date"><div class="pc-date-main">今日</div><div class="pc-date-sub">可領至 04/25</div></div>
-      </div>
-      <div class="pickup-card soon" onclick="showToast('📅 第2次領藥即將開放')">
-        <div class="pc-icon">📋</div>
-        <div class="pc-body"><div class="pc-title">即將可領藥</div><div class="pc-sub">心臟內科處方箋 · 第 2 次 / 共 3 次</div></div>
-        <div class="pc-date"><div class="pc-date-main">05/08</div><div class="pc-date-sub">可領至 05/21</div></div>
-      </div>
-      <div class="pickup-card future" onclick="showToast('📅 第3次領藥尚未開放')">
-        <div class="pc-icon">🔒</div>
-        <div class="pc-body"><div class="pc-title">第 3 次領藥</div><div class="pc-sub">心臟內科處方箋 · 第 3 次 / 共 3 次</div></div>
-        <div class="pc-date"><div class="pc-date-main">06/05</div><div class="pc-date-sub">可領至 06/18</div></div>
-      </div>
-    </div>
-    <div class="quick-cards">
-      <div class="quick-card alert" onclick="showToast('⚠️ 胃藥庫存剩3天')"><div class="qc-icon">🔴</div><div class="qc-label">庫存警告</div><div class="qc-sub">1 種藥品偏低</div></div>
-      <div class="quick-card" onclick="switchTab('cabinet')"><div class="qc-icon">🗃️</div><div class="qc-label">前往藥箱</div><div class="qc-sub">新增門診或藥品</div></div>
-    </div>
+    <div id="todayPickupSection"></div>
+    <div id="todayQuickSection"></div>
     <div id="todayMedSections"></div>
     <div style="height:8px"></div>
   </div>
@@ -456,11 +436,7 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
       <button class="ftab" onclick="setFilter('done',this)">已完成</button>
     </div>
   </div>
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-num teal">2</div><div class="stat-label">處方箋</div></div>
-    <div class="stat-card"><div class="stat-num amber">5</div><div class="stat-label">藥品種類</div></div>
-    <div class="stat-card"><div class="stat-num red">1</div><div class="stat-label">庫存警告</div></div>
-  </div>
+  <div class="stats-row" id="cabinetStats"></div>
   <div class="scroll-main" id="cabinetMain"></div>
 </div>
 
@@ -753,17 +729,7 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
 var WORKER = 'https://arcar.kftseng2oo1.workers.dev';
 
 /* ── 假資料 ── */
-var DATA = [
-  {id:'a1',clinic:'台大醫院內科',doctor:'陳醫師',dept:'心臟內科',visitDate:'2026-04-10',nextVisitDate:'2026-07-10',
-   rxList:[{id:'rx1',startDate:'2026-04-10',totalPickups:3,currentPickup:0,daysPerPickup:28,earlyDays:10,
-     meds:[{id:'m1',name:'降血壓藥 Amlodipine',dose:'5mg',freq:'QD',timing:'飯後',stockQty:21,dailyDose:1,color:'teal'},
-           {id:'m2',name:'血糖藥 Metformin',dose:'500mg',freq:'BID',timing:'飯中',stockQty:17,dailyDose:2,color:'amber'}]}]},
-  {id:'a2',clinic:'市立聯合醫院',doctor:'林醫師',dept:'腸胃科',visitDate:'2026-03-15',nextVisitDate:'2026-06-15',
-   rxList:[{id:'rx2',startDate:'2026-03-15',totalPickups:2,currentPickup:1,daysPerPickup:28,earlyDays:10,
-     meds:[{id:'m3',name:'胃藥 Omeprazole',dose:'20mg',freq:'BID',timing:'飯前',stockQty:3,dailyDose:2,color:'red'},
-           {id:'m4',name:'腸胃藥 Mosapride',dose:'5mg',freq:'TID',timing:'飯前',stockQty:14,dailyDose:3,color:'green'},
-           {id:'m5',name:'整腸藥 Lactulose',dose:'10ml',freq:'QD',timing:'睡前',stockQty:20,dailyDose:1,color:'purple'}]}]}
-];
+var DATA = []; /* 無預設假資料，使用者自行新增 */
 
 var profile = {name:'',birth:'',blood:'',allergies:[],ecName:'',ecEmail:''};
 
@@ -854,7 +820,7 @@ function switchTab(name){
   document.getElementById('tab-profile').classList.remove('active');
   if(name==='cabinet') renderCabinet();
   if(name==='calendar') renderCalendar();
-  if(name==='today') renderTodayMeds();
+  if(name==='today'){renderTodayMeds();renderTodayPickup();}
 }
 
 /* ── TODAY ── */
@@ -871,6 +837,71 @@ function updateProgress(){
   var badge=document.getElementById('tabBadge');
   if(pending>0){badge.textContent=pending;badge.style.display='flex';}
   else{badge.style.display='none';if(todayTotal>0)showToast('🎉 今日用藥全部完成！');}
+}
+
+function renderTodayPickup(){
+  var pickupSec=document.getElementById('todayPickupSection');
+  var quickSec=document.getElementById('todayQuickSection');
+  if(!pickupSec||!quickSec)return;
+  var allD=getData();
+  var t=todayStr();
+  var pickupCards='';
+  var visitCard='';
+  var hasWarn=false;
+  var warnCount=0;
+
+  /* 回診提醒（最近一筆）*/
+  var nextVisit=null,nextClinic='';
+  for(var ai=0;ai<allD.length;ai++){
+    if(allD[ai].nextVisitDate&&(!nextVisit||allD[ai].nextVisitDate<nextVisit)){
+      nextVisit=allD[ai].nextVisitDate;nextClinic=allD[ai].clinic;
+    }
+  }
+  if(nextVisit){
+    var vdf=daysFrom(nextVisit);
+    var vLbl=vdf>0?'（'+vdf+'天後）':vdf===0?'（今日回診！）':'（已過期）';
+    visitCard='<div class="visit-row"><span>🏥</span><span>下次<strong>回診</strong>：'+nextClinic+' &nbsp;<strong>'+fmtMD(nextVisit)+'</strong>&nbsp;'+vLbl+'</span></div>';
+  }
+
+  /* 領藥卡 */
+  for(var ai2=0;ai2<allD.length;ai2++){
+    var appt=allD[ai2];
+    for(var ri=0;ri<appt.rxList.length;ri++){
+      var rx=appt.rxList[ri];
+      if(rx.currentPickup>=rx.totalPickups)continue;
+      var n=rx.currentPickup+1;
+      var w=pickupWin(rx,rx.currentPickup);
+      var df=daysFrom(w.earliest);
+      var cls,icon,title,dateMain,dateSub;
+      if(t>=w.earliest&&t<=w.latest){
+        cls='active';icon='💊';title='現在可以去領藥';dateMain='今日';dateSub='可領至 '+fmtMD(w.latest);
+      } else if(df>0&&df<=5){
+        cls='soon';icon='📋';title=df+'天後可領藥';dateMain=fmtMD(w.earliest);dateSub='可領至 '+fmtMD(w.latest);
+      } else if(df>5){
+        cls='future';icon='🔒';title='第'+n+'次領藥';dateMain=fmtMD(w.earliest);dateSub='可領至 '+fmtMD(w.latest);
+      } else continue;
+      pickupCards+='<div class="pickup-card '+cls+'"><div class="pc-icon">'+icon+'</div>'+
+        '<div class="pc-body"><div class="pc-title">'+title+'</div><div class="pc-sub">'+appt.clinic+' · 第'+n+'次 / 共'+rx.totalPickups+'次</div></div>'+
+        '<div class="pc-date"><div class="pc-date-main">'+dateMain+'</div><div class="pc-date-sub">'+dateSub+'</div></div></div>';
+    }
+    /* 庫存警告計數 */
+    for(var ri2=0;ri2<appt.rxList.length;ri2++){
+      for(var mi2=0;mi2<appt.rxList[ri2].meds.length;mi2++){
+        if(stockSt(appt.rxList[ri2].meds[mi2])==='red'){hasWarn=true;warnCount++;}
+      }
+    }
+  }
+
+  pickupSec.innerHTML=visitCard+(pickupCards?'<div class="pickup-cards">'+pickupCards+'</div>':'')+
+    '<div style="height:4px"></div>';
+
+  /* 快速卡 */
+  var warnHtml=hasWarn
+    ?'<div class="quick-card alert" onclick="switchTab(\'cabinet\');setFilter(\'warn\',document.querySelectorAll(\'.ftab\')[2])"><div class="qc-icon">🔴</div><div class="qc-label">庫存警告</div><div class="qc-sub">'+warnCount+' 種藥品偏低</div></div>'
+    :'<div class="quick-card" onclick="switchTab(\'cabinet\')"><div class="qc-icon">✅</div><div class="qc-label">庫存正常</div><div class="qc-sub">所有藥品充足</div></div>';
+  quickSec.innerHTML='<div class="quick-cards">'+warnHtml+
+    '<div class="quick-card" onclick="switchTab(\'cabinet\')"><div class="qc-icon">🗃️</div><div class="qc-label">前往藥箱</div><div class="qc-sub">新增門診或藥品</div></div></div>'+
+    '<div style="height:4px"></div>';
 }
 
 function renderTodayMeds(){
@@ -1085,6 +1116,20 @@ function renderCabinet(){
   var main=document.getElementById('cabinetMain');
   main.innerHTML='';
   var allData=getData();
+  /* 更新統計卡 */
+  var rxCount=0,medCount=0,warnC=0;
+  for(var si=0;si<allData.length;si++){
+    rxCount+=allData[si].rxList.length;
+    for(var ri=0;ri<allData[si].rxList.length;ri++){
+      medCount+=allData[si].rxList[ri].meds.length;
+      for(var mi=0;mi<allData[si].rxList[ri].meds.length;mi++)if(stockSt(allData[si].rxList[ri].meds[mi])==='red')warnC++;
+    }
+  }
+  var statsEl=document.getElementById('cabinetStats');
+  if(statsEl)statsEl.innerHTML=
+    '<div class="stat-card"><div class="stat-num teal">'+rxCount+'</div><div class="stat-label">處方箋</div></div>'+
+    '<div class="stat-card"><div class="stat-num amber">'+medCount+'</div><div class="stat-label">藥品種類</div></div>'+
+    '<div class="stat-card"><div class="stat-num '+( warnC>0?'red':'teal')+'">'+warnC+'</div><div class="stat-label">庫存警告</div></div>';
   var filtered=[];
   for(var ai=0;ai<allData.length;ai++){
     var a=allData[ai];
@@ -1093,7 +1138,31 @@ function renderCabinet(){
     if(currentFilter==='warn'){var hasWarn=false;for(var ri3=0;ri3<a.rxList.length;ri3++){for(var mi3=0;mi3<a.rxList[ri3].meds.length;mi3++){if(stockSt(a.rxList[ri3].meds[mi3])!=='ok'){hasWarn=true;break;}}}if(!hasWarn)continue;}
     filtered.push(a);
   }
-  if(!filtered.length){main.innerHTML='<div class="cabinet-empty"><div class="cabinet-empty-icon">📭</div><p style="font-size:14px;color:var(--ink2)">沒有符合條件的資料<br>點右上角「新增門診」開始</p></div>';return;}
+  if(!filtered.length){
+    var emptyHtml;
+    if(currentFilter==='all'){
+      emptyHtml='<div class="cabinet-empty">'+
+        '<div class="cabinet-empty-icon">💊</div>'+
+        '<div style="font-size:17px;font-weight:900;color:var(--ink);margin-bottom:8px">歡迎使用智慧藥管家</div>'+
+        '<div style="font-size:13.5px;color:var(--ink2);line-height:1.9;margin-bottom:20px;text-align:left;background:var(--surface);border-radius:14px;padding:16px">'+
+        '<div style="font-weight:700;color:var(--teal);margin-bottom:8px;font-size:14px">📋 如何開始使用？</div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0">1</div><div><div style="font-weight:700;font-size:13px;color:var(--ink)">新增門診</div><div style="font-size:12px;color:var(--ink2)">點右上角「＋ 新增門診/用藥」，填入就診醫院、科別、醫師名稱</div></div></div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0">2</div><div><div style="font-weight:700;font-size:13px;color:var(--ink)">設定處方箋</div><div style="font-size:12px;color:var(--ink2)">填入領藥次數（慢性病通常 3 次）、每次天數（28 天）、提前可領天數（10 天）</div></div></div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0">3</div><div><div style="font-weight:700;font-size:13px;color:var(--ink)">新增藥品</div><div style="font-size:12px;color:var(--ink2)">填入藥品名稱、劑量、頻率（QD/BID/TID）、服藥時機及現有庫存數量</div></div></div>'+
+        '<div style="height:1px;background:var(--border);margin:10px 0"></div>'+
+        '<div style="font-weight:700;color:var(--teal);margin-bottom:8px;font-size:14px">📷 更快的方式</div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px"><div style="font-size:18px;flex-shrink:0">📷</div><div><div style="font-weight:700;font-size:13px;color:var(--ink)">拍照辨識</div><div style="font-size:12px;color:var(--ink2)">點右上角相機按鈕，拍攝藥袋標籤，AI 自動辨識並填入藥品資料</div></div></div>'+
+        '<div style="height:1px;background:var(--border);margin:10px 0"></div>'+
+        '<div style="font-weight:700;color:var(--teal);margin-bottom:8px;font-size:14px">📧 通知設定</div>'+
+        '<div style="font-size:12px;color:var(--ink2)">點右上角頭像 → 管理用藥者資料 → 填入緊急聯絡人 Email，領藥及庫存警告時自動發送通知</div>'+
+        '</div>'+
+        '<button onclick="openAddModal()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--teal);color:#fff;font-size:15px;font-weight:700;cursor:pointer">＋ 立即新增第一筆門診</button>'+
+        '</div>';
+    } else {
+      emptyHtml='<div class="cabinet-empty"><div class="cabinet-empty-icon">📭</div><p style="font-size:14px;color:var(--ink2)">沒有符合條件的資料</p></div>';
+    }
+    main.innerHTML=emptyHtml;return;
+  }
   for(var fi=0;fi<filtered.length;fi++){
     var appt=filtered[fi];
     var df=daysFrom(appt.nextVisitDate);
@@ -1723,6 +1792,7 @@ function saveAddMed(){
 
 /* ── 初始化 ── */
 renderTodayMeds();
+renderTodayPickup();
 renderCabinet();
 setTimeout(nCheck,2000);
 
@@ -1870,6 +1940,7 @@ function deleteCurrentUser(){
 })();
 /* ════ 多用戶管理系統結束 ════ */
 
+window.renderTodayPickup=renderTodayPickup;
 window.openUserSwitcher=openUserSwitcher;
 window.closeUserSwitcher=closeUserSwitcher;
 window.openUserForm=openUserForm;
