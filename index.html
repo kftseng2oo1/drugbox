@@ -582,7 +582,8 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
       <div class="form-group"><div class="form-label">🩸 血型</div><div class="blood-select"><button class="blood-btn" data-blood="A" onclick="selectBlood('A')">A</button><button class="blood-btn" data-blood="B" onclick="selectBlood('B')">B</button><button class="blood-btn" data-blood="AB" onclick="selectBlood('AB')">AB</button><button class="blood-btn" data-blood="O" onclick="selectBlood('O')">O</button></div></div>
       <div id="uf-delete-section" style="display:none;margin-top:8px">
         <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
-        <button onclick="deleteCurrentUser()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--red);background:transparent;font-size:14px;font-weight:700;color:var(--red);cursor:pointer">刪除此用藥者資料</button>
+        <button id="uf-clear-data-btn" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--amber);background:transparent;font-size:13px;font-weight:700;color:var(--amber);cursor:pointer;margin-bottom:8px">🗑 清除此用藥者所有用藥資料</button>
+        <button onclick="deleteCurrentUser()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--red);background:transparent;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">❌ 刪除此用藥者帳號</button>
       </div>
       <div style="height:8px"></div>
     </div>
@@ -774,18 +775,9 @@ function getData(){
   try{
     var key=getUserKey?getUserKey():'mm_appointments';
     var stored=JSON.parse(localStorage.getItem(key)||'[]');
-    if(stored&&stored.length>0){
-      if(currentUserId===0){
-        for(var di=0;di<DATA.length;di++){
-          var found=false;
-          for(var si=0;si<stored.length;si++){if(stored[si].id===DATA[di].id){found=true;break;}}
-          if(!found)stored.push(DATA[di]);
-        }
-      }
-      return stored;
-    }
+    if(stored&&stored.length>0) return stored;
   }catch(e){}
-  return currentUserId===0?DATA.slice():[];
+  return [];
 }
 function saveData(appts){
   try{var key=getUserKey?getUserKey():'mm_appointments';localStorage.setItem(key,JSON.stringify(appts));}catch(e){}
@@ -815,10 +807,17 @@ function dateToYMD(dt){
   var y=dt.getFullYear();var m=dt.getMonth()+1;var d=dt.getDate();
   return y+'-'+(m<10?'0':'')+m+'-'+(d<10?'0':'')+d;
 }
-function fmtMD(d){if(!d)return'—';var p=d.split('-');return p[1]+'/'+p[2];}
+function fmtMD(d){
+  if(!d||d==='undefined'||d==='null')return'—';
+  var p=d.split('-');
+  if(p.length<3||!p[1]||!p[2])return'—';
+  var m=parseInt(p[1]);var day=parseInt(p[2]);
+  if(isNaN(m)||isNaN(day))return'—';
+  return m+'/'+day;
+}
 function fmtFull(d){if(!d)return'—';var p=d.split('-');return p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日';}
 function todayStr(){return dateToYMD(new Date());}
-function daysFrom(d){var n=new Date();n.setHours(0,0,0,0);var t=new Date(d);t.setHours(0,0,0,0);return Math.round((t-n)/86400000);}
+function daysFrom(d){if(!d||d==='undefined')return 9999;var n=new Date();n.setHours(0,0,0,0);var t=new Date(d);if(isNaN(t.getTime()))return 9999;t.setHours(0,0,0,0);return Math.round((t-n)/86400000);}
 function stockSt(m){var d=m.stockQty/m.dailyDose;return d<5?'red':d<10?'amber':'ok';}
 function freqLbl(f){return{QD:'每日1次',BID:'每日2次',TID:'每日3次',QID:'每日4次',PRN:'需要時'}[f]||f;}
 function pickupWin(rx,n){var base=addDays(rx.startDate,n*(rx.daysPerPickup||28));return{earliest:addDays(base,-(rx.earlyDays||10)),latest:addDays(base,3)};}
@@ -886,17 +885,20 @@ function renderTodayPickup(){
   var hasWarn=false;
   var warnCount=0;
 
-  /* 回診提醒（最近一筆）*/
-  var nextVisit=null,nextClinic='';
-  for(var ai=0;ai<allD.length;ai++){
-    if(allD[ai].nextVisitDate&&(!nextVisit||allD[ai].nextVisitDate<nextVisit)){
-      nextVisit=allD[ai].nextVisitDate;nextClinic=allD[ai].clinic;
+  /* 回診提醒（所有門診，按日期排序）*/
+  var visits=[];
+  for(var vi=0;vi<allD.length;vi++){
+    var vd=allD[vi].nextVisitDate;
+    if(vd&&fmtMD(vd)!=='—'){
+      var vdf0=daysFrom(vd);
+      if(vdf0>=-1) visits.push({date:vd,clinic:allD[vi].clinic,df:vdf0});
     }
   }
-  if(nextVisit){
-    var vdf=daysFrom(nextVisit);
-    var vLbl=vdf>0?'（'+vdf+'天後）':vdf===0?'（今日回診！）':'（已過期）';
-    visitCard='<div class="visit-row"><span>🏥</span><span>下次<strong>回診</strong>：'+nextClinic+' &nbsp;<strong>'+fmtMD(nextVisit)+'</strong>&nbsp;'+vLbl+'</span></div>';
+  visits.sort(function(a,b){return a.date<b.date?-1:1;});
+  for(var vi2=0;vi2<visits.length;vi2++){
+    var v=visits[vi2];
+    var vLbl=v.df>0?'（'+v.df+'天後）':v.df===0?'（今日回診！）':'（昨日，請確認）';
+    visitCard+='<div class="visit-row"><span>🏥</span><span><strong>回診</strong>：'+v.clinic+' &nbsp;<strong>'+fmtMD(v.date)+'</strong>&nbsp;'+vLbl+'</span></div>';
   }
 
   /* 領藥卡 */
@@ -945,41 +947,67 @@ function renderTodayMeds(){
   container.innerHTML='';
   todayDone=[];
 
-  /* 讀 localStorage 或用假資料 */
+  /* 統一從 getData() 的 rxList.meds 讀取，避免重複 */
   var meds=[];
-  try{
-    var stored=JSON.parse(localStorage.getItem('mm_medications')||'[]');
-    var activeMeds=[];
-    for(var si=0;si<stored.length;si++){if(!stored[si].deletedAt)activeMeds.push(stored[si]);}
-    if(activeMeds.length)meds=activeMeds;
-  }catch(e){}
-
-  if(!meds.length){
-    var todayData=getData();
-    for(var ai=0;ai<todayData.length;ai++){
-      for(var ri=0;ri<todayData[ai].rxList.length;ri++){
-        for(var mi=0;mi<todayData[ai].rxList[ri].meds.length;mi++){
-          meds.push(todayData[ai].rxList[ri].meds[mi]);
-        }
+  var todayData=getData();
+  for(var ai=0;ai<todayData.length;ai++){
+    for(var ri=0;ri<todayData[ai].rxList.length;ri++){
+      var rxMeds=todayData[ai].rxList[ri].meds||[];
+      for(var mi=0;mi<rxMeds.length;mi++){
+        if(!rxMeds[mi].deletedAt) meds.push(rxMeds[mi]);
       }
     }
   }
 
-  todayTotal=meds.length;
+  /* todayTotal = 所有展開後的服藥次數 */
+  var totalSlots=0;
+  for(var tsi=0;tsi<meds.length;tsi++){
+    var f=meds[tsi].freq||'QD';
+    totalSlots+=(f==='TID'?3:f==='QID'?4:f==='BID'?2:1);
+  }
+  todayTotal=totalSlots;
   updateProgress();
 
-  /* 分時段 */
-  var timingToSec={飯前:'早上',飯中:'中午',飯後:'晚上',早上:'早上',中午:'中午',晚上:'晚上',睡前:'晚上',任意:'早上',空腹:'早上'};
+  /* 分時段：根據頻率展開到正確時段 */
   var secDot={早上:'#f59e0b',中午:'#0ea5e9',晚上:'#818cf8'};
   var secLbl={早上:'早上 Morning',中午:'中午 Noon',晚上:'晚上 Evening'};
   var sections={早上:[],中午:[],晚上:[]};
 
+  /* 根據 freq 和 timing 決定出現的時段 */
+  function getTimeSections(freq, timing){
+    /* TID：早上、中午、晚上各一次 */
+    if(freq==='TID') return [
+      {sec:'早上',lbl:timing},
+      {sec:'中午',lbl:timing},
+      {sec:'晚上',lbl:timing}
+    ];
+    /* QID：早上、中午、晚上、睡前（歸晚上）*/
+    if(freq==='QID') return [
+      {sec:'早上',lbl:timing},
+      {sec:'中午',lbl:timing},
+      {sec:'晚上',lbl:timing+'(2)'},
+      {sec:'晚上',lbl:'睡前'}
+    ];
+    /* BID：根據 timing 決定 */
+    if(freq==='BID'){
+      if(timing==='飯中') return [{sec:'早上',lbl:'早飯中'},{sec:'晚上',lbl:'晚飯中'}];
+      if(timing==='飯前') return [{sec:'早上',lbl:'早飯前'},{sec:'晚上',lbl:'晚飯前'}];
+      if(timing==='飯後') return [{sec:'早上',lbl:'早飯後'},{sec:'晚上',lbl:'晚飯後'}];
+      return [{sec:'早上',lbl:timing},{sec:'晚上',lbl:timing}];
+    }
+    /* QD / PRN：單次，根據 timing 決定時段 */
+    var timingToSec={飯前:'早上',飯中:'中午',飯後:'晚上',早上:'早上',中午:'中午',晚上:'晚上',睡前:'晚上',任意:'早上',空腹:'早上'};
+    var sec=timingToSec[timing]||'早上';
+    return [{sec:sec,lbl:timing}];
+  }
+
   for(var mi2=0;mi2<meds.length;mi2++){
     var m=meds[mi2];
-    var timings=m.timings||[m.timing||'飯後'];
-    for(var ti=0;ti<timings.length;ti++){
-      var sec=timingToSec[timings[ti]]||'早上';
-      sections[sec].push({med:m,timing:timings[ti]});
+    var freq=m.freq||'QD';
+    var timing=m.timing||'飯後';
+    var slots=getTimeSections(freq,timing);
+    for(var ti=0;ti<slots.length;ti++){
+      sections[slots[ti].sec].push({med:m,timing:slots[ti].lbl});
     }
   }
 
@@ -1148,6 +1176,50 @@ function showConfirm(msg,onOk){
 }
 
 /* ── 藥箱 ── */
+
+/* 刪除整筆門診（含處方箋、藥品、領藥記錄）*/
+function deleteAppt(apptId){
+  /* 找門診名稱 */
+  var allD=getData();
+  var clinicName='此門診';
+  for(var i=0;i<allD.length;i++){if(allD[i].id===apptId){clinicName=allD[i].clinic;break;}}
+
+  showConfirm('確定要刪除「'+clinicName+'」？\n含處方箋、藥品、領藥窗口及回診日期將一併移除，無法復原。',function(){
+    /* 從 DATA 移除 */
+    for(var di=0;di<DATA.length;di++){
+      if(DATA[di].id===apptId){DATA.splice(di,1);break;}
+    }
+    /* 從 localStorage 移除 */
+    var stored=getData();
+    var newStored=[];
+    for(var si=0;si<stored.length;si++){if(stored[si].id!==apptId)newStored.push(stored[si]);}
+    saveData(newStored);
+
+    /* 清除相關藥品（localStorage mm_medications）*/
+    try{
+      var mKey=getMedKey?getMedKey():'mm_medications';
+      var meds=JSON.parse(localStorage.getItem(mKey)||'[]');
+      var newMeds=[];
+      /* 找這筆門診的所有處方箋 id */
+      var rxIds={};
+      for(var ri=0;ri<stored.length;ri++){
+        if(stored[ri].id===apptId){
+          for(var rj=0;rj<stored[ri].rxList.length;rj++) rxIds[stored[ri].rxList[rj].id]=true;
+        }
+      }
+      for(var mi=0;mi<meds.length;mi++){
+        if(!rxIds[meds[mi].prescriptionId]) newMeds.push(meds[mi]);
+      }
+      localStorage.setItem(mKey,JSON.stringify(newMeds));
+    }catch(e){}
+
+    renderCabinet();
+    renderTodayMeds();
+    renderTodayPickup();
+    showToast('🗑 已刪除「'+clinicName+'」');
+  });
+}
+
 function renderCabinet(){
   var main=document.getElementById('cabinetMain');
   main.innerHTML='';
@@ -1201,10 +1273,18 @@ function renderCabinet(){
   }
   for(var fi=0;fi<filtered.length;fi++){
     var appt=filtered[fi];
-    var df=daysFrom(appt.nextVisitDate);
-    var nl=df>0?'（'+df+'天後）':df===0?'（今日）':'（'+Math.abs(df)+'天前）';
+    var nl='';
+    if(appt.nextVisitDate&&fmtMD(appt.nextVisitDate)!=='—'){
+      var df=daysFrom(appt.nextVisitDate);
+      nl=df>0?'（'+df+'天後）':df===0?'（今日）':'（'+Math.abs(df)+'天前）';
+    }
     var g=document.createElement('div');g.className='appt-group';
-    var html='<div class="appt-header"><div><div class="appt-name">🏥 '+appt.clinic+'</div><div class="appt-sub">'+appt.dept+' · '+appt.doctor+'</div></div><div class="appt-chip">回診 '+fmtMD(appt.nextVisitDate)+nl+'</div></div>';
+    var aId=appt.id;
+    var html='<div class="appt-header"><div><div class="appt-name">🏥 '+appt.clinic+'</div><div class="appt-sub">'+appt.dept+' · '+appt.doctor+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
+      '<div class="appt-chip">'+(appt.nextVisitDate&&fmtMD(appt.nextVisitDate)!=='—'?'回診 '+fmtMD(appt.nextVisitDate)+nl:'未設回診日')+'</div>'+
+      '<button class="del-appt-btn" data-appt-id="'+aId+'" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>'+
+      '</div></div>';
     for(var ri4=0;ri4<appt.rxList.length;ri4++){
       var rx=appt.rxList[ri4];
       var dots='';for(var di=0;di<rx.totalPickups;di++){var dc=di<rx.currentPickup?'done':di===rx.currentPickup?'active':'';dots+='<div class="rx-dot '+dc+'"></div>';}
@@ -1225,6 +1305,8 @@ function renderCabinet(){
   }
 }
 function setFilter(f,el){currentFilter=f;var tabs=document.querySelectorAll('.ftab');for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('active');el.classList.add('active');renderCabinet();}
+
+
 
 /* ── 日曆 ── */
 (function(){var n=new Date();calYear=n.getFullYear();calMonth_=n.getMonth();calSelected=todayStr();})();
@@ -1442,13 +1524,9 @@ function stepNext(){
       rxList: [newRx]
     };
 
-    /* 加入 DATA 並統一儲存 */
-    DATA.push(newAppt);
+    /* 儲存到 localStorage */
     var allAppts = getData();
-    /* 避免重複 */
-    var alreadyIn=false;
-    for(var chk=0;chk<allAppts.length;chk++){if(allAppts[chk].id===newAppt.id){alreadyIn=true;break;}}
-    if(!alreadyIn) allAppts.push(newAppt);
+    allAppts.push(newAppt);
     saveData(allAppts);
 
     /* 也存藥品到 localStorage（備用）*/
@@ -1836,13 +1914,7 @@ function saveAddMed(){
       }
     }
   }
-  /* 也存到 localStorage */
-  try{
-    var ms = JSON.parse(localStorage.getItem('mm_medications')||'[]');
-    newMed.prescriptionId = _addMedTargetRxId;
-    ms.push(newMed);
-    localStorage.setItem('mm_medications', JSON.stringify(ms));
-  }catch(e){}
+  /* 資料已透過 saveData(smData) 存入 mm_appointments，不需另存 mm_medications */
   closeAddMedModal();
   renderTodayMeds();
   renderCabinet();
@@ -1853,6 +1925,20 @@ function saveAddMed(){
 renderTodayMeds();
 renderTodayPickup();
 renderCabinet();
+
+/* 藥箱刪除按鈕：事件委派（在 DOM 準備好後綁定）*/
+(function(){
+  var cm=document.getElementById('cabinetMain');
+  if(cm){
+    cm.addEventListener('click',function(e){
+      var btn=e.target;
+      if(btn&&btn.className&&btn.className.indexOf('del-appt-btn')>=0){
+        var aid=btn.getAttribute('data-appt-id');
+        if(aid)deleteAppt(aid);
+      }
+    },false);
+  }
+})();
 setTimeout(nCheck,2000);
 
 /* Modal overlay 背景點擊關閉（iOS 相容版）*/
@@ -2071,6 +2157,20 @@ function saveUserForm(){
   if(_editingUserId===currentUserId)applyCurrentUser();
   closeUserForm();showToast('✓ 已儲存 '+name+' 的資料');
 }
+
+function clearUserData(){
+  showConfirm('確定要清除所有用藥資料？\n（門診、處方箋、藥品全部刪除）\n此操作無法復原。', function(){
+    var key=getUserKey?getUserKey():'mm_appointments';
+    localStorage.removeItem(key);
+    var mKey=getMedKey?getMedKey():'mm_medications';
+    localStorage.removeItem(mKey);
+    closeUserForm();
+    renderTodayMeds();
+    renderTodayPickup();
+    renderCabinet();
+    showToast('✓ 已清除所有用藥資料');
+  });
+}
 function deleteCurrentUser(){
   showConfirm('確定要刪除「'+currentUser().name+'」的所有資料？\n此操作無法復原。',function(){
     localStorage.removeItem('mm_user_'+_editingUserId);
@@ -2107,11 +2207,19 @@ function deleteCurrentUser(){
         openUserForm(currentUserId);
       },false);
     }
+    var clearDataBtn=document.getElementById('uf-clear-data-btn');
+    if(clearDataBtn){
+      clearDataBtn.addEventListener('click',function(e){
+        e.stopPropagation();
+        clearUserData();
+      },false);
+    }
   },100);
 })();
 /* ════ 多用戶管理系統結束 ════ */
 
 window.renderTodayPickup=renderTodayPickup;
+window.deleteAppt=deleteAppt;
 window.openLineHelper=openLineHelper;
 window.closeLineHelper=closeLineHelper;
 window.fetchLineUserId=fetchLineUserId;
@@ -2125,6 +2233,7 @@ window.ufSelRel=ufSelRel;
 window.ufSelColor=ufSelColor;
 window.saveUserForm=saveUserForm;
 window.deleteCurrentUser=deleteCurrentUser;
+window.clearUserData=clearUserData;
 window.openAddMedModal=openAddMedModal;
 window.closeAddMedModal=closeAddMedModal;
 window.amSelTiming=amSelTiming;
