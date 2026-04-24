@@ -1099,6 +1099,19 @@ function saveProfile(){
   }catch(e){}
 })();
 
+/* 從 localStorage 讀取使用者自行新增的門診，合併進 DATA */
+(function(){
+  try{
+    var stored = JSON.parse(localStorage.getItem('mm_appointments')||'[]');
+    for(var i=0;i<stored.length;i++){
+      /* 避免重複：檢查 id 是否已存在 DATA */
+      var exists = false;
+      for(var di=0;di<DATA.length;di++){if(DATA[di].id===stored[i].id){exists=true;break;}}
+      if(!exists) DATA.push(stored[i]);
+    }
+  }catch(e){}
+})();
+
 /* ── 新增門診 ── */
 var TIMINGS=[{v:'BEFORE',l:'飯前'},{v:'WITH',l:'飯中'},{v:'AFTER',l:'飯後'},{v:'BEDTIME',l:'睡前'},{v:'ANYTIME',l:'任意'},{v:'EMPTY',l:'空腹'}];
 var FREQS=[{v:'QD',l:'QD 每日1次'},{v:'BID',l:'BID 每日2次'},{v:'TID',l:'TID 每日3次'},{v:'QID',l:'QID 每日4次'},{v:'PRN',l:'PRN 需要時'}];
@@ -1128,9 +1141,92 @@ function updateStep(){
   if(_step===2)updatePreview();
 }
 function stepNext(){
-  if(_step===1){if(!document.getElementById('f-clinic').value.trim()){showToast('⚠ 請填寫醫院名稱');return;}_step=2;}
-  else if(_step===2){_step=3;}
-  else{closeAddModal();showToast('✓ 門診已新增（示範）');return;}
+  if(_step===1){
+    if(!document.getElementById('f-clinic').value.trim()){showToast('⚠ 請填寫醫院名稱');return;}
+    _step=2;
+  } else if(_step===2){
+    if(!document.getElementById('f-start').value){showToast('⚠ 請填寫處方起始日');return;}
+    _step=3;
+  } else {
+    /* Step 3：收集所有資料存入 DATA */
+    var clinic  = document.getElementById('f-clinic').value.trim();
+    var doctor  = document.getElementById('f-doctor').value.trim();
+    var dept    = document.getElementById('f-dept').value.trim();
+    var visit   = document.getElementById('f-visit').value;
+    var nextV   = document.getElementById('f-next').value;
+    var start   = document.getElementById('f-start').value;
+    var total   = parseInt(document.getElementById('f-total').value)||3;
+    var days    = parseInt(document.getElementById('f-days').value)||28;
+    var early   = parseInt(document.getElementById('f-early').value)||10;
+
+    /* 收集藥品 */
+    var newMeds = [];
+    var medItems = document.getElementById('medList').children;
+    for(var mi=0;mi<medItems.length;mi++){
+      var item = medItems[mi];
+      var id   = item.id;
+      var name = document.getElementById(id+'-name') ? document.getElementById(id+'-name').value.trim() : '';
+      if(!name) continue;
+      var dose  = document.getElementById(id+'-dose') ? document.getElementById(id+'-dose').value.trim() : '';
+      var stock = parseInt(document.getElementById(id+'-stock') ? document.getElementById(id+'-stock').value : '0')||0;
+      var freqEl= document.getElementById(id+'-freq');
+      var freq  = freqEl ? freqEl.options[freqEl.selectedIndex].value : 'QD';
+      /* 找選中的時機按鈕 */
+      var tGrid = item.querySelector('.timing-grid');
+      var tSel  = tGrid ? tGrid.querySelector('.timing-btn.sel') : null;
+      var timing= tSel ? tSel.textContent : '飯後';
+      var freqDailyMap = {QD:1,BID:2,TID:3,QID:4,PRN:1};
+      var colors = ['teal','amber','green','red','purple'];
+      newMeds.push({
+        id: 'med_'+Date.now()+'_'+mi,
+        name: name, dose: dose, freq: freq, timing: timing,
+        stockQty: stock, dailyDose: freqDailyMap[freq]||1,
+        color: colors[mi%colors.length], timings: [timing]
+      });
+    }
+
+    if(!newMeds.length){showToast('⚠ 請至少新增一項藥品');return;}
+
+    /* 建立新門診物件 */
+    var newRx = {
+      id: 'rx_'+Date.now(),
+      startDate: start,
+      totalPickups: total,
+      currentPickup: 0,
+      daysPerPickup: days,
+      earlyDays: early,
+      meds: newMeds
+    };
+    var newAppt = {
+      id: 'a_'+Date.now(),
+      clinic: clinic, doctor: doctor, dept: dept,
+      visitDate: visit, nextVisitDate: nextV,
+      rxList: [newRx]
+    };
+
+    /* 加入 DATA */
+    DATA.push(newAppt);
+
+    /* 存到 localStorage */
+    try{
+      var stored = JSON.parse(localStorage.getItem('mm_appointments')||'[]');
+      stored.push(newAppt);
+      localStorage.setItem('mm_appointments', JSON.stringify(stored));
+      /* 也存藥品 */
+      var storedMeds = JSON.parse(localStorage.getItem('mm_medications')||'[]');
+      for(var smi=0;smi<newMeds.length;smi++){
+        newMeds[smi].prescriptionId = newRx.id;
+        storedMeds.push(newMeds[smi]);
+      }
+      localStorage.setItem('mm_medications', JSON.stringify(storedMeds));
+    }catch(e){}
+
+    closeAddModal();
+    renderCabinet();
+    renderTodayMeds();
+    showToast('✓ 門診「'+clinic+'」已新增，共 '+newMeds.length+' 項藥品');
+    return;
+  }
   updateStep();
 }
 function stepBack(){if(_step>1){_step--;updateStep();}}
