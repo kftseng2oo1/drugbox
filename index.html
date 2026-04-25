@@ -632,6 +632,14 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
           <div class="form-group"><div class="form-label">📅 就診日</div><input class="form-input" id="f-visit" type="date"></div>
           <div class="form-group"><div class="form-label">🔄 下次回診</div><input class="form-input" id="f-next" type="date"></div>
         </div>
+        <!-- 臨時門診切換 -->
+        <div style="background:#fff7ed;border:1.5px solid #fcd34d;border-radius:12px;padding:13px 14px;margin-top:4px;display:flex;align-items:center;gap:12px;cursor:pointer" id="tempVisitToggle">
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13.5px;color:#b45309">🏃 臨時門診（無拿藥）</div>
+            <div style="font-size:12px;color:#92400e;margin-top:3px;line-height:1.5">勾選後直接完成，不需填處方箋與藥品<br>例如：回診領報告、打針、一般門診</div>
+          </div>
+          <div id="tempVisitCheck" style="width:26px;height:26px;border-radius:50%;border:2px solid #fcd34d;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s"></div>
+        </div>
       </div>
       <div class="step-panel" id="panel2">
         <div class="form-group"><div class="form-label">📋 處方起始日</div><input class="form-input" id="f-start" type="date" oninput="updatePreview()"></div>
@@ -1291,7 +1299,7 @@ function renderCabinet(){
     }
     var g=document.createElement('div');g.className='appt-group';
     var aId=appt.id;
-    var html='<div class="appt-header"><div><div class="appt-name">🏥 '+appt.clinic+'</div><div class="appt-sub">'+appt.dept+' · '+appt.doctor+'</div></div>'+
+    var html='<div class="appt-header"><div><div class="appt-name">🏥 '+appt.clinic+(appt.isTemp?'<span style="font-size:10px;background:#fef3c7;color:#b45309;border-radius:999px;padding:1px 7px;margin-left:6px;font-weight:700">臨時</span>':'')+'</div><div class="appt-sub">'+appt.dept+' · '+appt.doctor+'</div></div>'+
       '<div style="display:flex;align-items:center;gap:6px">'+
       '<div class="appt-chip">'+(appt.nextVisitDate&&fmtMD(appt.nextVisitDate)!=='—'?'回診 '+fmtMD(appt.nextVisitDate)+nl:'未設回診日')+'</div>'+
       '<button class="del-appt-btn" data-appt-id="'+aId+'" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>'+
@@ -1447,8 +1455,14 @@ function saveProfile(){
 var TIMINGS=[{v:'BEFORE',l:'飯前'},{v:'WITH',l:'飯中'},{v:'AFTER',l:'飯後'},{v:'BEDTIME',l:'睡前'},{v:'ANYTIME',l:'任意'},{v:'EMPTY',l:'空腹'}];
 var FREQS=[{v:'QD',l:'QD 每日1次'},{v:'BID',l:'BID 每日2次'},{v:'TID',l:'TID 每日3次'},{v:'QID',l:'QID 每日4次'},{v:'PRN',l:'PRN 需要時'}];
 
+var _isTempVisit=false;
 function openAddModal(){
-  _step=1;_medCount=0;document.getElementById('medList').innerHTML='';
+  _step=1;_medCount=0;_isTempVisit=false;document.getElementById('medList').innerHTML='';
+  /* 重置臨時門診按鈕 */
+  var chk=document.getElementById('tempVisitCheck');
+  if(chk){chk.textContent='';chk.style.background='#fff';chk.style.borderColor='#fcd34d';}
+  var tog=document.getElementById('tempVisitToggle');
+  if(tog){tog.style.background='#fff7ed';}
   var t=new Date().toISOString().slice(0,10);
   document.getElementById('f-visit').value=t;document.getElementById('f-start').value=t;
   document.getElementById('f-clinic').value='';document.getElementById('f-doctor').value='';
@@ -1474,6 +1488,23 @@ function updateStep(){
 function stepNext(){
   if(_step===1){
     if(!document.getElementById('f-clinic').value.trim()){showToast('⚠ 請填寫醫院名稱');return;}
+    /* 臨時門診：直接儲存，跳過 Step 2/3 */
+    if(_isTempVisit){
+      var clinic  = document.getElementById('f-clinic').value.trim();
+      var doctor  = document.getElementById('f-doctor').value.trim();
+      var dept    = document.getElementById('f-dept').value.trim();
+      var visit   = document.getElementById('f-visit').value;
+      var nextV   = document.getElementById('f-next').value;
+      var newAppt = {
+        id:'a_'+Date.now(), clinic:clinic, doctor:doctor, dept:dept,
+        visitDate:visit, nextVisitDate:nextV,
+        isTemp:true, rxList:[]
+      };
+      var allAppts=getData(); allAppts.push(newAppt); saveData(allAppts);
+      closeAddModal(); renderCabinet(); renderTodayMeds(); renderTodayPickup();
+      showToast('✓ 臨時門診「'+clinic+'」已記錄');
+      return;
+    }
     _step=2;
   } else if(_step===2){
     if(!document.getElementById('f-start').value){showToast('⚠ 請填寫處方起始日');return;}
@@ -2216,6 +2247,25 @@ function deleteCurrentUser(){
       manageBtn.addEventListener('click',function(e){
         e.stopPropagation();
         openUserForm(currentUserId);
+      },false);
+    }
+    /* 臨時門診切換按鈕 */
+    var tempTog=document.getElementById('tempVisitToggle');
+    if(tempTog){
+      tempTog.addEventListener('click',function(e){
+        e.stopPropagation();
+        _isTempVisit=!_isTempVisit;
+        var chk=document.getElementById('tempVisitCheck');
+        var tog=document.getElementById('tempVisitToggle');
+        if(_isTempVisit){
+          chk.textContent='✓';chk.style.background='#b45309';chk.style.borderColor='#b45309';chk.style.color='#fff';
+          tog.style.background='#fef3c7';
+          document.getElementById('btnNext').textContent='✓ 完成（臨時門診）';
+        } else {
+          chk.textContent='';chk.style.background='#fff';chk.style.borderColor='#fcd34d';
+          tog.style.background='#fff7ed';
+          document.getElementById('btnNext').textContent='下一步 →';
+        }
       },false);
     }
     var clearDataBtn=document.getElementById('uf-clear-data-btn');
