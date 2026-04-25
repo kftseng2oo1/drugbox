@@ -355,6 +355,37 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
 .confirm-cancel{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:transparent;font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer}
 .confirm-ok{flex:1;padding:12px;border-radius:12px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
 .hidden-file{display:none}
+/* ══ AI 諮詢頁 ══ */
+.ai-header{flex-shrink:0;background:linear-gradient(135deg,#1e1b4b,#312e81);padding:calc(env(safe-area-inset-top,60px)+12px) 20px 16px;position:relative;overflow:hidden}
+.ai-header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(139,92,246,.3),transparent 60%)}
+.ai-header-inner{position:relative;z-index:1}
+.ai-header-title{font-size:19px;font-weight:900;color:#fff;margin-bottom:3px}
+.ai-header-sub{font-size:11.5px;color:rgba(255,255,255,.55)}
+.ai-header-icon{font-size:28px;margin-bottom:6px}
+.ai-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px}
+.ai-msg{display:flex;gap:9px;align-items:flex-end}
+.ai-msg.user{flex-direction:row-reverse}
+.ai-bubble{max-width:78%;border-radius:16px;padding:10px 13px;font-size:13.5px;line-height:1.7;word-break:break-word}
+.ai-msg.ai .ai-bubble{background:#fff;color:var(--ink);border-radius:4px 16px 16px 16px;box-shadow:var(--shadow)}
+.ai-msg.user .ai-bubble{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:16px 4px 16px 16px}
+.ai-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:linear-gradient(135deg,#4f46e5,#7c3aed)}
+.ai-typing{display:flex;align-items:center;gap:4px;padding:10px 14px}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:#a5b4fc;animation:aiDot 1.2s ease-in-out infinite}
+.ai-dot:nth-child(2){animation-delay:.2s}
+.ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes aiDot{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+.ai-input-bar{flex-shrink:0;background:#fff;border-top:1px solid var(--border);padding:10px 14px calc(var(--safe-bottom)+10px);display:flex;gap:9px;align-items:flex-end}
+.ai-input{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;color:var(--ink);outline:none;resize:none;max-height:100px;line-height:1.5;-webkit-user-select:text;user-select:text;-webkit-appearance:none;font-family:-apple-system,sans-serif}
+.ai-input:focus{border-color:#4f46e5}
+.ai-send-btn{width:38px;height:38px;border-radius:50%;border:none;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-send-btn:active{opacity:.8}
+.ai-send-btn:disabled{opacity:.4}
+.ai-quick-chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;flex-shrink:0}
+.ai-quick-chips::-webkit-scrollbar{display:none}
+.ai-chip{flex-shrink:0;padding:6px 13px;border-radius:999px;border:1.5px solid #c4b5fd;background:#f5f3ff;font-size:12px;font-weight:600;color:#4f46e5;cursor:pointer;white-space:nowrap}
+.ai-chip:active{background:#4f46e5;color:#fff}
+.ai-disclaimer{font-size:10.5px;color:var(--ink3);text-align:center;padding:6px 20px 0;flex-shrink:0;line-height:1.5}
+
 /* ══ 多用戶選擇器 ══ */
 .user-switcher-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:flex;align-items:flex-start;justify-content:flex-end;padding:calc(var(--safe-top)+60px) 16px 0;opacity:0;pointer-events:none;transition:opacity .22s}
 .user-switcher-overlay.open{opacity:1;pointer-events:all}
@@ -458,6 +489,37 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
 </div>
 
 <!-- TABBAR -->
+
+<!-- AI 諮詢頁 -->
+<div class="page" id="page-ai">
+  <div class="ai-header">
+    <div class="ai-header-inner">
+      <div class="ai-header-icon">🤖</div>
+      <div class="ai-header-title">AI 用藥諮詢</div>
+      <div class="ai-header-sub">基於您的用藥資料提供個人化建議 · 僅供參考，不代替醫師診斷</div>
+    </div>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <!-- 歡迎訊息 -->
+    <div class="ai-msg ai">
+      <div class="ai-avatar">🤖</div>
+      <div class="ai-bubble" id="aiWelcome">您好！我是智慧藥管家 AI 助理。我已讀取您的用藥資料，可以回答用藥相關問題。<br><br>請注意：我的建議僅供參考，如有疑慮請諮詢您的主治醫師。</div>
+    </div>
+  </div>
+  <div class="ai-quick-chips" id="aiQuickChips">
+    <div class="ai-chip">我的藥品有哪些副作用？</div>
+    <div class="ai-chip">我的藥可以一起吃嗎？</div>
+    <div class="ai-chip">忘記吃藥怎麼辦？</div>
+    <div class="ai-chip">我的庫存還夠嗎？</div>
+    <div class="ai-chip">這個藥飯前飯後吃哪個好？</div>
+  </div>
+  <div class="ai-disclaimer">⚠️ AI 回覆僅供參考，不構成醫療建議，緊急狀況請立即就醫</div>
+  <div class="ai-input-bar">
+    <textarea class="ai-input" id="aiInput" placeholder="輸入您的用藥問題..." rows="1"></textarea>
+    <button class="ai-send-btn" id="aiSendBtn">➤</button>
+  </div>
+</div>
+
 <nav class="tabbar">
   <div class="tab-item active" id="tab-today" onclick="switchTab('today')">
     <div class="tab-icon">☀️<span class="tab-badge" id="tabBadge" style="display:none">0</span></div><span>今日</span>
@@ -465,6 +527,7 @@ body{font-family:-apple-system,sans-serif;background:#f0ede8;color:#1c1917;displ
   <div class="tab-item" id="tab-cabinet" onclick="switchTab('cabinet')"><div class="tab-icon">🗃️</div><span>藥箱</span></div>
   <div class="tab-item" id="tab-calendar" onclick="switchTab('calendar')"><div class="tab-icon">📅</div><span>日曆</span></div>
   <div class="tab-item" id="tab-profile" onclick="openUserSwitcher()"><div class="tab-icon">👤</div><span>我的</span></div>
+  <div class="tab-item" id="tab-ai" onclick="switchTab('ai')"><div class="tab-icon">🤖</div><span>AI 諮詢</span></div>
 </nav>
 <div class="toast" id="toast"></div>
 
@@ -866,7 +929,7 @@ function showToast(msg){
 
 /* ── Tab 切換 ── */
 function switchTab(name){
-  var tabs=['today','cabinet','calendar'];
+  var tabs=['today','cabinet','calendar','ai'];
   for(var i=0;i<tabs.length;i++){
     document.getElementById('page-'+tabs[i]).classList.toggle('active',tabs[i]===name);
     document.getElementById('tab-'+tabs[i]).classList.toggle('active',tabs[i]===name);
@@ -875,6 +938,7 @@ function switchTab(name){
   if(name==='cabinet') renderCabinet();
   if(name==='calendar') renderCalendar();
   if(name==='today'){renderTodayMeds();renderTodayPickup();}
+  if(name==='ai')initAiPage();
 }
 
 /* ── TODAY ── */
@@ -2098,6 +2162,148 @@ function sendLineNotify(subject, message){
   .catch(function(){return null;});
 }
 
+
+
+/* ════ AI 用藥諮詢 ════ */
+var _aiHistory=[];
+var _aiReady=false;
+
+function buildMedContext(){
+  var u=currentUser();
+  var allD=getData();
+  var lines=[];
+  var nameStr=u.name||'';
+  if(u.birth){var age=new Date().getFullYear()-parseInt(u.birth.split('-')[0]);nameStr+=' '+age+'歲';}
+  if(u.blood) nameStr+=' 血型'+u.blood;
+  if(u.allergies&&u.allergies.length) nameStr+=' 過敏:'+u.allergies.join(',');
+  if(nameStr) lines.push('用藥者:'+nameStr);
+  if(!allD.length){
+    lines.push('尚未設定任何用藥資料');
+  } else {
+    lines.push('用藥資料:');
+    for(var ai=0;ai<allD.length;ai++){
+      var appt=allD[ai];
+      lines.push('['+appt.clinic+'] '+appt.dept+' '+appt.doctor);
+      if(appt.isTemp){lines.push('  臨時門診');continue;}
+      for(var ri=0;ri<appt.rxList.length;ri++){
+        var rx=appt.rxList[ri];
+        for(var mi=0;mi<rx.meds.length;mi++){
+          var m=rx.meds[mi];
+          if(m.deletedAt) continue;
+          var dl=Math.floor(m.stockQty/(m.dailyDose||1));
+          var fq=m.freq==='QD'?'每日1次':m.freq==='BID'?'每日2次':m.freq==='TID'?'每日3次':m.freq;
+          lines.push('  - '+m.name+' '+m.dose+' '+fq+' '+m.timing+' 庫存'+dl+'天');
+        }
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+function initAiPage(){
+  if(_aiReady) return;
+  _aiReady=true;
+  var u=currentUser();
+  var allD=getData();
+  var medCount=0;
+  for(var ai=0;ai<allD.length;ai++){
+    for(var ri=0;ri<allD[ai].rxList.length;ri++){
+      for(var mi=0;mi<allD[ai].rxList[ri].meds.length;mi++){
+        if(!allD[ai].rxList[ri].meds[mi].deletedAt) medCount++;
+      }
+    }
+  }
+  var welcome=document.getElementById('aiWelcome');
+  if(welcome){
+    var g=u.name?u.name+' 您好！':'您好！';
+    var m2=medCount>0?'已讀取您 '+medCount+' 種藥品資料，可提供個人化建議。':'尚未設定藥品資料，可先前往藥箱新增。';
+    welcome.innerHTML=g+'我是智慧藥管家 AI 助理。'+m2+'<br><br>⚠️ 建議僅供參考，請勿取代醫師診斷。';
+  }
+  var chips=document.querySelectorAll('.ai-chip');
+  for(var ci=0;ci<chips.length;ci++){
+    (function(chip){
+      chip.addEventListener('click',function(){
+        var t=chip.textContent;
+        var inp=document.getElementById('aiInput');
+        if(inp){inp.value=t;}
+        aiSend();
+      },false);
+    })(chips[ci]);
+  }
+  var sendBtn=document.getElementById('aiSendBtn');
+  if(sendBtn) sendBtn.addEventListener('click',function(){aiSend();},false);
+  var inp2=document.getElementById('aiInput');
+  if(inp2){
+    inp2.addEventListener('keydown',function(e){
+      if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiSend();}
+    },false);
+    inp2.addEventListener('input',function(){
+      inp2.style.height='auto';
+      inp2.style.height=Math.min(inp2.scrollHeight,100)+'px';
+    },false);
+  }
+}
+
+function aiAddMsg(role,text){
+  var container=document.getElementById('aiMessages');
+  var wrap=document.createElement('div');
+  wrap.className='ai-msg '+role;
+  var safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  if(role==='ai'){
+    wrap.innerHTML='<div class="ai-avatar">🤖</div><div class="ai-bubble">'+safe+'</div>';
+  } else {
+    wrap.innerHTML='<div class="ai-bubble">'+safe+'</div>';
+  }
+  container.appendChild(wrap);
+  container.scrollTop=container.scrollHeight;
+}
+
+function aiShowTyping(){
+  var container=document.getElementById('aiMessages');
+  var wrap=document.createElement('div');
+  wrap.className='ai-msg ai';wrap.id='aiTyping';
+  wrap.innerHTML='<div class="ai-avatar">🤖</div><div class="ai-bubble ai-typing"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
+  container.appendChild(wrap);
+  container.scrollTop=container.scrollHeight;
+}
+function aiHideTyping(){var t=document.getElementById('aiTyping');if(t&&t.parentNode)t.parentNode.removeChild(t);}
+
+function aiSend(){
+  var inp=document.getElementById('aiInput');
+  var text=inp?inp.value.trim():'';
+  if(!text)return;
+  aiAddMsg('user',text);
+  _aiHistory.push({role:'user',content:text});
+  if(inp){inp.value='';inp.style.height='auto';}
+  var chips=document.getElementById('aiQuickChips');
+  if(chips)chips.style.display='none';
+  var btn=document.getElementById('aiSendBtn');
+  if(btn)btn.disabled=true;
+  aiShowTyping();
+  var medCtx=buildMedContext();
+  var sysPrompt='你是智慧藥管家APP的AI用藥助理，協助台灣用藥者解答問題。請用繁體中文回答，語氣親切專業。必須提醒：若有疑慮請諮詢醫師或藥師。用藥者資料如下：'+medCtx;
+  var msgs=_aiHistory.slice(-20);
+  fetch(WORKER+'/',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:sysPrompt,messages:msgs})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    aiHideTyping();
+    var reply=(data.content&&data.content[0]&&data.content[0].text)||'抱歉，目前無法回應，請稍後再試。';
+    _aiHistory.push({role:'assistant',content:reply});
+    aiAddMsg('ai',reply);
+    if(btn)btn.disabled=false;
+  })
+  .catch(function(){
+    aiHideTyping();
+    aiAddMsg('ai','⚠️ 網路連線異常，請確認網路後再試。');
+    if(btn)btn.disabled=false;
+  });
+}
+
+
 window.MedNotify={check:nCheck};
 
 /* ════ 多用戶管理系統 ════ */
@@ -2328,6 +2534,8 @@ function deleteCurrentUser(){
 /* ════ 多用戶管理系統結束 ════ */
 
 window.renderTodayPickup=renderTodayPickup;
+window.aiSend=aiSend;
+window.initAiPage=initAiPage;
 window.deleteAppt=deleteAppt;
 window.openLineHelper=openLineHelper;
 window.closeLineHelper=closeLineHelper;
